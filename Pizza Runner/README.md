@@ -10,12 +10,7 @@ Danny started by recruiting “runners” to deliver fresh pizza from Pizza Runn
 Danny has prepared for us an entity relationship diagram of his database design but requires further assistance to clean his data and apply some basic calculations so he can better direct his runners and optimise Pizza Runner’s operations.
 
 We have the following datasets - 
-runner_orders
-customer_orders
-pizza_names
-runners
-pizza_recipes
-pizza_toppings
+runner_orders, customer_orders, pizza_names, runners, pizza_recipes, pizza_toppings
 
 View full case study problem at - https://8weeksqlchallenge.com/case-study-2/
 
