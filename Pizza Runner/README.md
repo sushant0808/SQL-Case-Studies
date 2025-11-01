@@ -41,6 +41,13 @@ The fictional company Pizza Runner wants to analyze:
 2. The runner_orders table also has null and blank values in the **pickup_time, distance, duration & cancellation** columns. 
 3. No blank or null values are present in the **runners, pizza_names, pizza_recipes, pizza_toppings**.
 
+### Data Cleaning - Performed data cleaning using SQL
+1. Checked the count of nulls and blanks in all the columns for each table.
+2. Based on the previous points output, I focused on the tables having null values in them. So I checked the count of types of null values like for example:- 'null' in string format, NULL or Blank space so that I can replace the null values accordingly.
+3. Used **Alter and Update statements** in SQL to change & replace the nulls with proper values.
+
+
+
 
 
 
