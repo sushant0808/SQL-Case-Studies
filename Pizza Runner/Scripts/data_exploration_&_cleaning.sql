@@ -9,7 +9,7 @@ select * from runner_orders;
 select * from runners;
 
 
--- ********** Checking for null or uncleaned data for each table ********** --
+********** Checking for null or uncleaned data for each table **********
 
 -- Here I am checking null or blank values for each column in the customer_orders table
 select count(*) from customer_orders where (exclusions is null) or (exclusions in ('null','')); 
