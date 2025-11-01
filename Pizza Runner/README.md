@@ -48,6 +48,8 @@ The fictional company Pizza Runner wants to analyze:
 
 See the file here - Data/Cleaned Data/customer_orders.xlsx
 
+*See the file* → [scripts/data_cleaning.sql](scripts/data_cleaning.sql)
+
 
 
 
