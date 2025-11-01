@@ -13,16 +13,14 @@ select * from runners;
 
 -- Here I am checking null or blank values for each column in the customer_orders table
 select count(*) from customer_orders where (exclusions is null) or (exclusions in ('null','')); 
--- Above query gives 9 null/empty values in the column named as exclusions.
 
 select count(*) from customer_orders where (extras is null) or (extras in ('null',''));
--- Above query gives 10 null/empty values in the column named as extras
+
 
 select count(*) from customer_orders where (order_time is null);
 select count(*) from customer_orders where (order_id is null);
 select count(*) from customer_orders where (customer_id is null);
 select count(*) from customer_orders where (pizza_id is null);
--- Columns order_time, order_id, customer_id, pizza_id in the Above 4 queries don't have anu null values
 
 
 -- As we see from the above query result only the exclusions and extras column have null or blank values. So we will classify data 
