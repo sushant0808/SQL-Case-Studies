@@ -46,9 +46,9 @@ The fictional company Pizza Runner wants to analyze:
 2. Based on the previous points output, I focused on the tables having null values in them. So I checked the count of types of null values like for example:- 'null' in string format, NULL or Blank space so that I can replace the null values accordingly.
 3. Used **Alter and Update statements** in SQL to change & replace the nulls with proper values.
 
-See the file here - Data/Cleaned Data/customer_orders.xlsx
+See the file here - Data/Cleaned Data
 
-*See the file* → [scripts/data_cleaning.sql](scripts/data_cleaning.sql)
+*See the file* → [scripts/data_cleaning.sql](Data/Cleaned Data)
 
 
 
