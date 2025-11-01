@@ -1,1 +1,20 @@
 
+## Q1. How many pizzas were ordered?
+
+```sql
+select count(order_id) as total_pizzas_ordered from customer_orders;
+```
+
+<img width="236" height="78" alt="image" src="https://github.com/user-attachments/assets/27b998ac-a330-4a11-9827-a18664bf2727" />
+
+
+
+## Q2. How many unique customer orders were made?
+
+```sql
+select count(distinct order_id) as unqiue_customer_orders from customer_orders;
+```
+
+<img width="236" height="78" alt="image" src="https://github.com/user-attachments/assets/27b998ac-a330-4a11-9827-a18664bf2727" />
+
+
