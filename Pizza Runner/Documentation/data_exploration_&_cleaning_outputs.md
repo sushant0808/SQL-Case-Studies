@@ -1,4 +1,4 @@
-
+### NOTE - Only included the select statement queries over here. All the Alter & Update related commands for data cleaning are present here 
 
 ```sql
 select count(*) from customer_orders where (exclusions is null) or (exclusions in ('null',''));
