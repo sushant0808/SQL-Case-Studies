@@ -1,5 +1,4 @@
-### NOTE - Only included the select statement queries over here. All the Alter & Update related commands for data cleaning are present here - 
-[Scripts/data_exploration_&_cleaning.sql](../Scripts/data_exploration_&_cleaning.sql)
+### NOTE - Only included the select statement queries over here. All the Alter & Update related commands for data cleaning are present here - [Scripts/data_exploration_&_cleaning.sql](../Scripts/data_exploration_&_cleaning.sql)
 <br>
 
 ```sql
