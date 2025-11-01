@@ -9,19 +9,21 @@ select * from runner_orders;
 select * from runners;
 
 
--- Checking for null or uncleaned data for each table
+-- ********** Checking for null or uncleaned data for each table ********** --
 
+-- Here I am checking null or blank values for each column in the customer_orders table
+select count(*) from customer_orders where (exclusions is null) or (exclusions in ('null','')); 
+-- Above query gives 9 null/empty values in the column named as exclusions.
 
--- Customer Orders Table --
--- Columns "order_id", "customer_id", "pizza_id", "exclusions", "extras", "order_time"
+select count(*) from customer_orders where (extras is null) or (extras in ('null',''));
+-- Above query gives 10 null/empty values in the column named as extras
 
--- Below I am checking null or blank values for each column in the customer_orders table
-select count(*) from customer_orders where (exclusions is null) or (exclusions in ('null','')); -- exclusions - 9 null/empty values
-select count(*) from customer_orders where (extras is null) or (extras in ('null','')); -- extras - 10 null/empty values
-select count(*) from customer_orders where (order_time is null); -- order_time - No null/empty values values
-select count(*) from customer_orders where (order_id is null); -- order_id - No null/empty values values
-select count(*) from customer_orders where (customer_id is null); -- customer_id - No null/empty values values
-select count(*) from customer_orders where (pizza_id is null); -- pizza_id - No null/empty values values
+select count(*) from customer_orders where (order_time is null);
+select count(*) from customer_orders where (order_id is null);
+select count(*) from customer_orders where (customer_id is null);
+select count(*) from customer_orders where (pizza_id is null);
+-- Columns order_time, order_id, customer_id, pizza_id in the Above 4 queries don't have anu null values
+
 
 -- As we see from the above query result only the exclusions and extras column have null or blank values. So we will classify data 
 -- based on null, empty values and also check the count.
