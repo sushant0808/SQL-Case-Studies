@@ -36,9 +36,8 @@ The fictional company Pizza Runner wants to analyze:
 5. pizza_recipes
 6. pizza_toppings
 
-The customer_orders table had 'null', blank and NaN values in couple of columns. 
-
-<img width="228" height="138" alt="image" src="https://github.com/user-attachments/assets/8e4ea043-92c7-4870-99ca-9bc5a2e03fc8" />
+The customer_orders table had NULL, 'null' word in string type, blank space and NaN values in couple of columns. 
+The runner_orders table also has null and blank values.
 
 
 
