@@ -36,8 +36,10 @@ The fictional company Pizza Runner wants to analyze:
 5. pizza_recipes
 6. pizza_toppings
 
-The customer_orders table had NULL, 'null' word in string type, blank space and NaN values in couple of columns. 
-The runner_orders table also has null and blank values.
+### Data Exploration
+1. The customer_orders table had NULL, 'null' word in string type, blank space and NaN values in couple of columns. 
+2. The runner_orders table also has null and blank values.
+3. 
 
 
 
