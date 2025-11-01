@@ -20,6 +20,27 @@ runner_orders, customer_orders, pizza_names, runners, pizza_recipes, pizza_toppi
 2. View full case study problem at - https://8weeksqlchallenge.com/case-study-2/
 3. The goal was to clean and analyze a raw pizza delivery dataset to answer key business questions around customer orders, delivery performance, and runner efficiency.
 
+### Business Objectives
+
+The fictional company Pizza Runner wants to analyze:
+1. Customer ordering trends
+2. Runner delivery performance
+3. Ingredients usage
+4. Revenue and order completion rates
+
+### The database contains multiple tables such as:
+1. customer_orders
+2. runner_orders
+3. runners
+4. pizza_names
+5. pizza_recipes
+6. pizza_toppings
+
+The customer_orders table had 'null', blank and NaN values in couple of columns. 
+
+<img width="228" height="138" alt="image" src="https://github.com/user-attachments/assets/8e4ea043-92c7-4870-99ca-9bc5a2e03fc8" />
+
+
 
 
 
