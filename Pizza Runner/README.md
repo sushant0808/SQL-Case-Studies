@@ -14,3 +14,24 @@ runner_orders, customer_orders, pizza_names, runners, pizza_recipes, pizza_toppi
 
 View full case study problem at - https://8weeksqlchallenge.com/case-study-2/
 
+
+#### Project Overview
+
+This project is based on the Pizza Runner SQL Case Study by Danny Ma (8 Week SQL Challenge).
+The goal was to clean and analyze a raw pizza delivery dataset to answer key business questions around customer orders, delivery performance, and runner efficiency.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
