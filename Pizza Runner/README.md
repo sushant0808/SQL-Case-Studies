@@ -12,13 +12,13 @@ Danny has prepared for us an entity relationship diagram of his database design 
 We have the following datasets - 
 runner_orders, customer_orders, pizza_names, runners, pizza_recipes, pizza_toppings
 
-View full case study problem at - https://8weeksqlchallenge.com/case-study-2/
 
 
-#### Project Overview
+### Project Overview
 
-This project is based on the Pizza Runner SQL Case Study by Danny Ma (8 Week SQL Challenge).
-The goal was to clean and analyze a raw pizza delivery dataset to answer key business questions around customer orders, delivery performance, and runner efficiency.
+1. This project is based on the Pizza Runner SQL Case Study by Danny Ma (8 Week SQL Challenge). 
+2. View full case study problem at - https://8weeksqlchallenge.com/case-study-2/
+3. The goal was to clean and analyze a raw pizza delivery dataset to answer key business questions around customer orders, delivery performance, and runner efficiency.
 
 
 
