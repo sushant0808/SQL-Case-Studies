@@ -47,7 +47,7 @@ The fictional company Pizza Runner wants to analyze:
 3. Used **Alter and Update statements** in SQL to change & replace the nulls with proper values.
 
 
-*See the file* → [SQL Scripts/data_exploration_&_cleaning.sql](SQL Scripts/data_exploration_&_cleaning.sql)
+*See the file* → [Scripts/data_exploration_&_cleaning.sql](Scripts/data_exploration_&_cleaning.sql)
 
 ### Tools Used
 1. PostgreSQL & pgAdmin 8.10
