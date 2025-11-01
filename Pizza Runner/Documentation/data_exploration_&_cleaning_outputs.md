@@ -1,4 +1,5 @@
-### NOTE - Only included the select statement queries over here. All the Alter & Update related commands for data cleaning are present here 
+### NOTE - Only included the select statement queries over here. All the Alter & Update related commands for data cleaning are present here - [Scripts/data_exploration_&_cleaning.sql](Scripts/data_exploration_&_cleaning.sql)
+<br>
 
 ```sql
 select count(*) from customer_orders where (exclusions is null) or (exclusions in ('null',''));
