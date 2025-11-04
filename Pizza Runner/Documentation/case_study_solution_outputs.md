@@ -150,6 +150,41 @@ ORDER BY MIN(order_time);
 ### ------------------------------------------ B. Runner and Customer Experience ------------------------------------------
 <br>
 
+```sql
+with t1 as (
+	SELECT 
+	    *,
+	    DATE_TRUNC('week', registration_date::date - INTERVAL '4 days') + INTERVAL '4 days' AS calendar_week
+	FROM 
+	    runners	
+)
+select calendar_week, count(runner_id) as total_runners from t1 group by calendar_week order by calendar_week;
+```
+
+Description - I have not used the EXTRACT(WEEK FROM date) in the sql query as it is giving me the ISO week. So for date 01-01-2021 the extract function is giving me 53rd week as the ISO week starts on Monday. Below is the output for the reference.
+
+<img width="428" height="187" alt="image" src="https://github.com/user-attachments/assets/fe515cc4-864a-497f-803f-75a72911fa33" />
+
+
+Understanding ISO Week Logic & Custom Week Calculation. By default, PostgreSQL’s EXTRACT(WEEK FROM date) function follows the ISO week numbering system, which has specific international rules:
+1. The week starts on Monday.
+2. Week 1 of any year is the week that contains the first Thursday of that year.
+3. As a result, the first few days of January sometimes belong to the last week (Week 52 or 53) of the previous year.
+
+To fix the ISO issue and consider 01-01-2021 as the start of the week, we are using below code line in ou sql query.
+DATE_TRUNC('week', registration_date::date - INTERVAL '4 days') + INTERVAL '4 days' AS week_start
+
+How it works:
+1. registration_date::date - INTERVAL '4 days' - shifts the date 4 days backward, so Friday becomes the new “Monday.”
+2. DATE_TRUNC('week', …) - rounds that adjusted date down to the start of its ISO week.
+3. INTERVAL '4 days' - moves forward again by 4 days so the week starts on Friday instead of Monday.
+
+<br>
+Output - 
+
+<img width="427" height="148" alt="image" src="https://github.com/user-attachments/assets/75405a03-c9f4-4ce1-87cf-da78dfb8d1f3" />
+
+
 
 
 
