@@ -181,6 +181,7 @@ How it works:
 
 <br>
 Output - 
+<br><br>
 
 <img width="427" height="148" alt="image" src="https://github.com/user-attachments/assets/75405a03-c9f4-4ce1-87cf-da78dfb8d1f3" />
 
