@@ -148,7 +148,8 @@ ORDER BY MIN(order_time);
 <br><br>
 
 ### ------------------------------------------ B. Runner and Customer Experience ------------------------------------------
-<br>
+<br><br>
+## 1. How many runners signed up for each 1 week period? (i.e. week starts 2021-01-01)
 
 ```sql
 with t1 as (
