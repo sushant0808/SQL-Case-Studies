@@ -2,7 +2,10 @@
 ### For this case study, I have included all the sql queries and their output in this file. Some outputs are in image format and some in a table format. For table format outputs, you will see double quotes i.e " " around the columns and values in the table. 
 
 ### This is because I am taking the output of the sql queries from Postgresql and pasting it in an online table formatter to format the output in well structured table format.
+<br><br>
 
+### -------------------------------------------------- A. Pizza Metrics --------------------------------------------------
+<br>
 
 ## Q1. How many pizzas were ordered?
 
@@ -125,6 +128,8 @@ select hours_from_timestamp as hours, count(pizza_id) as total_pizzas
 from t1 group by hours_from_timestamp order by hours_from_timestamp;
 ```
 
+Description - The EXTRACT() function in PostgreSQL is used to retrieve specific components (like year, month, day, etc.) from a date or time value.
+
 <img width="287" height="246" alt="image" src="https://github.com/user-attachments/assets/806d0b35-8152-44e2-8142-33f72525fdb1" />
 
 ## 10. What was the volume of orders for each day of the week?
@@ -140,6 +145,26 @@ ORDER BY MIN(order_time);
 ```
 
 <img width="295" height="182" alt="image" src="https://github.com/user-attachments/assets/45997347-6b0b-4907-b954-65d9e4313b43" />
+<br><br>
+
+### ------------------------------------------ B. Runner and Customer Experience ------------------------------------------
+<br>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
