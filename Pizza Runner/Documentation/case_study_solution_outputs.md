@@ -229,10 +229,105 @@ If we don’t account for this, our calculations will count that order_time mult
 <img width="362" height="155" alt="image" src="https://github.com/user-attachments/assets/2a28dcbd-2349-4406-b4d3-5dc3e6ec76fe" />
 
 
+## 3. Is there any relationship between the number of pizzas and how long the order takes to prepare?
+```sql
+select 
+c.order_id, c.pizza_id, c.order_time,
+r.runner_id, r.pickup_time
+from customer_orders as c
+inner join runner_orders as r
+on c.order_id = r.order_id order by c.order_id;
+```
+
+Output - 
+| "order_id" 	| "pizza_id" 	| "order_time"          	| "runner_id" 	| "pickup_time"         	|
+|------------	|------------	|-----------------------	|-------------	|-----------------------	|
+| 1          	| 1          	| "2020-01-01 18:05:02" 	| 1           	| "2020-01-01 18:15:34" 	|
+| 2          	| 1          	| "2020-01-01 19:00:52" 	| 1           	| "2020-01-01 19:10:54" 	|
+| 3          	| 2          	| "2020-01-02 23:51:23" 	| 1           	| "2020-01-03 00:12:37" 	|
+| 3          	| 1          	| "2020-01-02 23:51:23" 	| 1           	| "2020-01-03 00:12:37" 	|
+| 4          	| 1          	| "2020-01-04 13:23:46" 	| 2           	| "2020-01-04 13:53:03" 	|
+| 4          	| 1          	| "2020-01-04 13:23:46" 	| 2           	| "2020-01-04 13:53:03" 	|
+| 4          	| 2          	| "2020-01-04 13:23:46" 	| 2           	| "2020-01-04 13:53:03" 	|
+| 5          	| 1          	| "2020-01-08 21:00:29" 	| 3           	| "2020-01-08 21:10:57" 	|
+| 6          	| 2          	| "2020-01-08 21:03:13" 	| 3           	| "00:00:00"            	|
+| 7          	| 2          	| "2020-01-08 21:20:29" 	| 2           	| "2020-01-08 21:30:45" 	|
+| 8          	| 1          	| "2020-01-09 23:54:33" 	| 2           	| "2020-01-10 00:15:02" 	|
+| 9          	| 1          	| "2020-01-10 11:22:59" 	| 2           	| "00:00:00"            	|
+| 10         	| 1          	| "2020-01-11 18:34:49" 	| 1           	| "2020-01-11 18:50:20" 	|
+| 10         	| 1          	| "2020-01-11 18:34:49" 	| 1           	| "2020-01-11 18:50:20" 	|
+| 10         	| 1          	| "2020-01-11 18:34:49" 	| 1           	| "2020-01-11 18:50:20" 	|
 
 
+## 4. What was the average distance travelled for each customer?
+```sql
+select 
+c.customer_id, round(avg(r.distance_numeric))::TEXT || ' km' as avg_distance
+from customer_orders as c
+inner join runner_orders as r
+on c.order_id = r.order_id
+group by c.customer_id order by c.customer_id
+```
+
+<img width="316" height="216" alt="image" src="https://github.com/user-attachments/assets/f1e1f2f1-91c0-43a9-96e6-369ddd547e82" />
+
+## 5. What was the difference between the longest and shortest delivery times for all orders?
+```sql
+with tab1 as(
+	SELECT 
+	    MAX(pickup_time::time + (duration_numeric || ' minutes')::INTERVAL) AS latest_delivery_time,
+	    MIN(pickup_time::time + (duration_numeric || ' minutes')::INTERVAL) AS earliest_delivery_time
+	FROM runner_orders where pickup_time <> '00:00:00'
+)
+select *, latest_delivery_time - earliest_delivery_time as difference_time from tab1;
+```
+
+<img width="601" height="92" alt="image" src="https://github.com/user-attachments/assets/68c0fadb-5e50-429c-8a56-04b37a3a67ac" />
 
 
+## 6. What was the average speed for each runner for each delivery and do you notice any trend for these values?
+```sql
+with tab1 as (
+	SELECT 
+	    runner_id,
+	    order_id,
+	    distance_numeric AS distance_km,
+		duration_numeric as duration_in_minutes,
+	    duration_numeric / 60.0 AS time_hours,
+	    distance_numeric / (duration_numeric / 60.0) AS speed_in_kmph
+	FROM runner_orders
+	WHERE cancellation = 'Not Applicable' order by runner_id
+)
+SELECT 
+runner_id,
+round(avg(distance_km))::text || ' km' as distance_km,
+round(avg(duration_in_minutes))::text || ' minutes' as duration_in_minutes,
+avg(time_hours)::text || ' hours' as duration_in_hours,
+round(AVG(speed_in_kmph))::text || ' km' AS avg_speed_kmph
+from tab1 group by runner_id;
+```
+
+<img width="790" height="151" alt="image" src="https://github.com/user-attachments/assets/f280f321-07d9-4f47-88c7-c131a91bb27c" />
+
+
+## 7. What is the successful delivery percentage for each runner?
+```sql
+SELECT 
+    runner_id,
+    COUNT(CASE WHEN cancellation = 'Not Applicable' THEN 1 END) AS successful_delivery_count,
+	COUNT(*) as total_count,
+	(
+		COUNT(CASE WHEN cancellation = 'Not Applicable' THEN 1 END)::float 
+		/ 
+		COUNT(*)::float
+	) * 100
+	AS successful_delivery_percentage
+FROM runner_orders
+GROUP BY runner_id
+ORDER BY runner_id;
+```
+
+<img width="760" height="156" alt="image" src="https://github.com/user-attachments/assets/87551307-0efc-486d-96c4-6728c101b584" />
 
 
 
