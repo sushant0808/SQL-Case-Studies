@@ -28,6 +28,7 @@ Description - We are using the distinct keyword to get the unique customer order
 <br><br>
 
 <img width="236" height="78" alt="image" src="https://github.com/user-attachments/assets/27b998ac-a330-4a11-9827-a18664bf2727" />
+<br><br>
 
 ## 3. How many successful orders were delivered by each runner?
 ```sql
@@ -39,7 +40,7 @@ Description - We are using the runner_orders table for the above question. We ar
 <br><br>
 
 <img width="332" height="156" alt="image" src="https://github.com/user-attachments/assets/4088e2ef-330b-45a1-9e15-0712d1208acd" />
-
+<br><br>
 
 ## 4. How many of each type of pizza was delivered?
 ```sql
@@ -54,6 +55,7 @@ ORDER BY p.pizza_name;
 ```
 
 <img width="440" height="117" alt="image" src="https://github.com/user-attachments/assets/682cf6fe-f54c-4685-a474-c1ceae397389" />
+<br><br>
 
 ## 5. How many Vegetarian and Meatlovers were ordered by each customer?
 ```sql
@@ -66,6 +68,7 @@ group by c.customer_id, p.pizza_name order by c.customer_id;
 ```
 
 <img width="423" height="307" alt="image" src="https://github.com/user-attachments/assets/363c8ff2-2016-4a48-a736-036696987dd0" />
+<br><br>
 
 ## 6. What was the maximum number of pizzas delivered in a single order?
 ```sql
@@ -79,6 +82,8 @@ group by c.order_id order by total_pizzas desc limit 1;
 ```
 
 <img width="285" height="91" alt="image" src="https://github.com/user-attachments/assets/9d0c716f-fe06-43af-97c0-35199d563e00" />
+<br><br>
+
 
 ## 7. For each customer, how many delivered pizzas had at least 1 change and how many had no changes?
 ```sql
@@ -106,6 +111,8 @@ ORDER BY customer_id, change_flag;
 ```
 
 <img width="453" height="246" alt="image" src="https://github.com/user-attachments/assets/911d978c-7f61-4b32-9233-0096104b1e59" />
+<br><br>
+
 
 ## 8. How many pizzas were delivered that had both exclusions and extras?
 ```sql
@@ -118,6 +125,7 @@ WHERE r.cancellation = 'Not Applicable'
 ```
 
 <img width="182" height="85" alt="image" src="https://github.com/user-attachments/assets/443e2ccb-578b-453b-9629-fd4a33cbee78" />
+<br><br>
 
 ## 9. What was the total volume of pizzas ordered for each hour of the day?
 ```sql
@@ -131,6 +139,8 @@ from t1 group by hours_from_timestamp order by hours_from_timestamp;
 Description - The EXTRACT() function in PostgreSQL is used to retrieve specific components (like year, month, day, etc.) from a date or time value.
 
 <img width="287" height="246" alt="image" src="https://github.com/user-attachments/assets/806d0b35-8152-44e2-8142-33f72525fdb1" />
+<br><br>
+
 
 ## 10. What was the volume of orders for each day of the week?
 ```sql
@@ -185,7 +195,7 @@ Output -
 <br><br>
 
 <img width="427" height="148" alt="image" src="https://github.com/user-attachments/assets/75405a03-c9f4-4ce1-87cf-da78dfb8d1f3" />
-
+<br><br>
 
 ## 2. What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?
 ```sql
@@ -227,7 +237,7 @@ If we don’t account for this, our calculations will count that order_time mult
 
 
 <img width="362" height="155" alt="image" src="https://github.com/user-attachments/assets/2a28dcbd-2349-4406-b4d3-5dc3e6ec76fe" />
-
+<br><br>
 
 ## 3. Is there any relationship between the number of pizzas and how long the order takes to prepare?
 ```sql
@@ -257,7 +267,7 @@ Output -
 | 10         	| 1          	| "2020-01-11 18:34:49" 	| 1           	| "2020-01-11 18:50:20" 	|
 | 10         	| 1          	| "2020-01-11 18:34:49" 	| 1           	| "2020-01-11 18:50:20" 	|
 | 10         	| 1          	| "2020-01-11 18:34:49" 	| 1           	| "2020-01-11 18:50:20" 	|
-
+<br><br>
 
 ## 4. What was the average distance travelled for each customer?
 ```sql
@@ -270,6 +280,7 @@ group by c.customer_id order by c.customer_id
 ```
 
 <img width="316" height="216" alt="image" src="https://github.com/user-attachments/assets/f1e1f2f1-91c0-43a9-96e6-369ddd547e82" />
+<br><br>
 
 ## 5. What was the difference between the longest and shortest delivery times for all orders?
 ```sql
@@ -283,7 +294,7 @@ select *, latest_delivery_time - earliest_delivery_time as difference_time from 
 ```
 
 <img width="601" height="92" alt="image" src="https://github.com/user-attachments/assets/68c0fadb-5e50-429c-8a56-04b37a3a67ac" />
-
+<br><br>
 
 ## 6. What was the average speed for each runner for each delivery and do you notice any trend for these values?
 ```sql
@@ -308,7 +319,7 @@ from tab1 group by runner_id;
 ```
 
 <img width="790" height="151" alt="image" src="https://github.com/user-attachments/assets/f280f321-07d9-4f47-88c7-c131a91bb27c" />
-
+<br><br>
 
 ## 7. What is the successful delivery percentage for each runner?
 ```sql
@@ -328,7 +339,7 @@ ORDER BY runner_id;
 ```
 
 <img width="760" height="156" alt="image" src="https://github.com/user-attachments/assets/87551307-0efc-486d-96c4-6728c101b584" />
-
+<br><br>
 
 
 
