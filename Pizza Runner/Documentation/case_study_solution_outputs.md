@@ -187,6 +187,47 @@ Output -
 <img width="427" height="148" alt="image" src="https://github.com/user-attachments/assets/75405a03-c9f4-4ce1-87cf-da78dfb8d1f3" />
 
 
+## 2. What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?
+```sql
+WITH order_prep_times AS (
+    SELECT 
+        r.runner_id,
+        c.order_id,
+        MIN(c.order_time) AS order_time,      
+        MIN(r.pickup_time) AS pickup_time,    
+        ROUND(
+            EXTRACT(EPOCH FROM (MIN(r.pickup_time)::timestamp - MIN(c.order_time)::timestamp)) / 60,
+            2
+        ) AS prep_time_mins                   
+    FROM customer_orders AS c
+    JOIN runner_orders AS r
+        ON c.order_id = r.order_id
+    WHERE r.pickup_time <> '00:00:00'         
+    GROUP BY r.runner_id, c.order_id 
+)
+SELECT
+    runner_id,
+    ROUND(AVG(prep_time_mins), 2) AS avg_pickup_time_mins
+FROM order_prep_times
+GROUP BY runner_id
+ORDER BY runner_id;
+```
+
+Description -
+1. The order_prep_times CTE groups each runner by their orders. We do this because each runner has delivered multiple orders, and some of these orders may include multiple pizzas.
+
+2. For example, if a customer orders 3 pizzas in a single order, there will be 3 rows for that order in the customer_orders table. Each of those rows will have the same order_time value, since they all belong to one order.
+If we don’t account for this, our calculations will count that order_time multiple times and give an incorrect average.
+
+3. To avoid this, we group by both order_id and runner_id, ensuring that each runner-order pair is counted only once.
+
+4. Within the query, we calculate the prep_time_mins by subtracting the order_time from the pickup_time. This gives an interval data type (e.g., 00:10:14). Since we cannot directly calculate averages on interval data, we use the EXTRACT(EPOCH FROM ...) function to convert the interval into seconds, and then divide it by 60 to convert it into minutes.
+
+5. Finally, in the main query, we calculate the average preparation time per runner, giving us the average number of minutes each runner takes to pick up an order from the restaurant.
+
+
+<img width="362" height="155" alt="image" src="https://github.com/user-attachments/assets/2a28dcbd-2349-4406-b4d3-5dc3e6ec76fe" />
+
 
 
 
