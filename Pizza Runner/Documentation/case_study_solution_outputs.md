@@ -373,11 +373,61 @@ Description -
 6. Together, they allow us to normalize denormalized data — breaking a single text field with multiple values into separate rows for easy joining and analysis.
 
 <img width="808" height="122" alt="image" src="https://github.com/user-attachments/assets/7623434e-f099-4112-9b14-93b6be180316" />
+<br><br>
 
 
+## 2. What was the most commonly added extra?
+```sql
+with orders as (
+	select *, UNNEST(STRING_TO_ARRAY(extras, ','))::INTEGER AS topping_id
+	from customer_orders order by order_id
+)
+select 
+pt.topping_name, count(pt.topping_id) as total_toppings_used
+from orders as o 
+inner join pizza_toppings as pt
+on o.topping_id = pt.topping_id
+where extras <> '0'
+group by pt.topping_name order by total_toppings_used desc limit 1;
+```
 
+Description - 
+1. This query identifies the most commonly added extra topping across all customer orders.
+2. The extras column contains topping IDs stored as comma-separated strings, which are first split into individual rows using STRING_TO_ARRAY() and UNNEST().
+3. After converting them to integers, the query joins with the pizza_toppings table to retrieve topping names.
+4. Finally, it counts how many times each topping was added and returns the one with the highest count.
 
+Result - The most commonly added extra topping is Bacon, which was added 5 times.
 
+<img width="381" height="90" alt="image" src="https://github.com/user-attachments/assets/728ecafb-6a3f-473d-9cc9-86794204eac7" />
+
+<br><br>
+
+## 3. What was the most common exclusion?
+```sql
+with orders as (
+	select *, UNNEST(STRING_TO_ARRAY(exclusions, ','))::INTEGER AS topping_id
+	from customer_orders
+)
+select 
+pt.topping_name, count(pt.topping_id) as total_toppings_used
+from orders as o 
+inner join pizza_toppings as pt
+on o.topping_id = pt.topping_id
+where exclusions <> '0'
+group by pt.topping_name order by total_toppings_used desc limit 1;
+```
+
+Description - 
+1. This query identifies the most commonly excluded topping across all customer orders.
+2. The exclusion column contains topping IDs stored as comma-separated strings, which are first split into individual rows using STRING_TO_ARRAY() and UNNEST().
+3. After converting them to integers, the query joins with the pizza_toppings table to retrieve topping names.
+4. Finally, it counts how many times each topping was excluded and returns the one with the highest count.
+
+Result - The most commonly excluded topping is Bacon, which was added 5 times.
+
+<img width="380" height="87" alt="image" src="https://github.com/user-attachments/assets/4d4abca3-b363-4509-bb61-d672f2b5b3eb" />
+<br><br>
 
 
 
