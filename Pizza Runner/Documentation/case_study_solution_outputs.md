@@ -369,7 +369,7 @@ Description -
 2. It does not involve the customer_orders table, since that table reflects what customers actually ordered (which may include exclusions or extras).
 3. The goal here is to understand the default pizza compositions on the menu, not customer-specific modifications.
 4. STRING_TO_ARRAY() converts a comma-separated text value like '1,2,3,4,5' into an array like {1,2,3,4,5}
-5. UNNEST() expands that array like {1,2,3,4,5} into multiple rows. So for this array {1,2,3,4,5} UNNEST() will create 5 records.
+5. UNNEST() expands that array like {1,2,3,4,5} into multiple rows. So for this array {1,2,3,4,5} UNNEST() will create 5 records as we have 5 elements within array {1,2,3,4,5}.
 6. Together, they allow us to normalize denormalized data — breaking a single text field with multiple values into separate rows for easy joining and analysis.
 
 <img width="808" height="122" alt="image" src="https://github.com/user-attachments/assets/7623434e-f099-4112-9b14-93b6be180316" />
