@@ -424,7 +424,7 @@ Description -
 3. After converting them to integers, the query joins with the pizza_toppings table to retrieve topping names.
 4. Finally, it counts how many times each topping was excluded and returns the one with the highest count.
 
-Result - The most commonly excluded topping is Bacon, which was added 5 times.
+Result - The most commonly excluded topping is Cheeze, which was added 4 times.
 
 <img width="380" height="87" alt="image" src="https://github.com/user-attachments/assets/4d4abca3-b363-4509-bb61-d672f2b5b3eb" />
 <br><br>
