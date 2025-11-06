@@ -342,6 +342,37 @@ ORDER BY runner_id;
 <br><br>
 
 
+### ------------------------------------------ C.  Ingredient Optimisation ------------------------------------------
+<br><br>
+
+## 1. What are the standard ingredients for each pizza?
+```sql
+WITH expanded_toppings AS (
+    SELECT 
+        pr.pizza_id,
+        UNNEST(STRING_TO_ARRAY(pr.toppings, ','))::INTEGER AS topping_id
+    FROM pizza_recipes pr
+)
+select 
+et.pizza_id as pizza_id,
+pn.pizza_name as pizza_name,
+STRING_AGG(pt.topping_name, ', ') AS standard_toppings
+from expanded_toppings as et
+inner join pizza_toppings as pt on et.topping_id = pt.topping_id
+inner join pizza_names as pn on et.pizza_id = pn.pizza_id 
+group by et.pizza_id, pn.pizza_name
+order by et.pizza_id;
+```
+
+Description - 
+1. This query focuses on listing the standard ingredients for each pizza type as defined in the pizza_recipes table.
+2. It does not involve the customer_orders table, since that table reflects what customers actually ordered (which may include exclusions or extras).
+3. The goal here is to understand the default pizza compositions on the menu, not customer-specific modifications.
+4. STRING_TO_ARRAY() converts a comma-separated text value like '1,2,3,4,5' into an array like {1,2,3,4,5}
+5. UNNEST() expands that array like {1,2,3,4,5} into multiple rows. So for this array {1,2,3,4,5} UNNEST() will create 5 records.
+6. Together, they allow us to normalize denormalized data — breaking a single text field with multiple values into separate rows for easy joining and analysis.
+
+<img width="808" height="122" alt="image" src="https://github.com/user-attachments/assets/7623434e-f099-4112-9b14-93b6be180316" />
 
 
 
