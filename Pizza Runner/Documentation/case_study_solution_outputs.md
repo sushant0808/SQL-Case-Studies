@@ -429,8 +429,80 @@ Result - The most commonly excluded topping is Cheeze, which was added 4 times.
 <img width="380" height="87" alt="image" src="https://github.com/user-attachments/assets/4d4abca3-b363-4509-bb61-d672f2b5b3eb" />
 <br><br>
 
+## 4. Generate an order item for each record in the customers_orders table in the format of one of the following:
+o Meat Lovers
+o Meat Lovers - Exclude Beef
+o Meat Lovers - Extra Bacon
+o Meat Lovers - Exclude Cheese, Bacon - Extra Mushroom, Peppers
+
+```sql
+with adding_unique_identifier_to_customers_table as (
+	select *, row_number() over(order by order_time) as unique_row_id from customer_orders
+), unnest_exclusions as (
+	select *, unnest(STRING_TO_ARRAY(exclusions,','))::INTEGER as unnested_exclusion_id
+	from adding_unique_identifier_to_customers_table
+), join_topping_names_with_unnested_exclusions as (
+	select ue.*, pn.pizza_name, pt.topping_name from unnest_exclusions as ue
+	left join pizza_toppings as pt
+	on ue.unnested_exclusion_id = pt.topping_id
+	left join pizza_names as pn
+	on ue.pizza_id = pn.pizza_id
+), nest_back_exclusions as (
+	select
+	unique_row_id,
+	order_id,
+	pizza_name,
+	STRING_AGG(topping_name,', ') as exclusions_list 
+	from join_topping_names_with_unnested_exclusions
+	group by unique_row_id, order_id, pizza_name
+), unnest_extras as (
+	select *, unnest(STRING_TO_ARRAY(extras,','))::INTEGER as unnested_extras_id
+	from adding_unique_identifier_to_customers_table
+), join_topping_names_with_unnested_extras as (
+	select ue.*, pn.pizza_name, pt.topping_name from unnest_extras as ue
+	left join pizza_toppings as pt
+	on ue.unnested_extras_id = pt.topping_id
+	left join pizza_names as pn
+	on ue.pizza_id = pn.pizza_id
+), nest_back_extras as (
+	select
+	unique_row_id,
+	order_id,
+	pizza_name,
+	STRING_AGG(topping_name,', ') as extras_list 
+	from join_topping_names_with_unnested_extras
+	group by unique_row_id, order_id, pizza_name
+)
+select 
+n1.*, n2.extras_list,
+case 
+	when exclusions_list is null and extras_list is null then null
+	when exclusions_list is null and extras_list is not null then concat('Extra ',extras_list)
+	when extras_list is null and exclusions_list is not null then concat('Exclude ', exclusions_list)
+	else concat('Exclude ', exclusions_list,' - Extra ',extras_list)
+end as order_item_information
+from nest_back_exclusions as n1
+left join nest_back_extras as n2 
+on n1.unique_row_id = n2.unique_row_id
+order by order_id;
+```
+
+Description - This query generates a readable “order item” for each pizza ordered by customers, including any toppings that were excluded or added as extras.
+
+The process involves:
+1. Expanding the comma-separated exclusions and extras topping IDs into multiple rows using STRING_TO_ARRAY() and UNNEST().
+2. Mapping those topping IDs to human-readable topping names via joins with the pizza_toppings and pizza_names tables.
+3. Recombining them into comma-separated lists using STRING_AGG().
+4. Merging exclusions and extras for each pizza using a conditional CASE statement to produce outputs like:
+   a. Meatlovers - Exclude Cheese
+   b. Meatlovers - Extra Bacon
+   c. Meatlovers - Exclude Cheese, Bacon - Extra Mushroom, Peppers
+5. This allows a direct, readable summary of every customized pizza ordered by customers.
 
 
+Output - 
+<img width="1137" height="562" alt="image" src="https://github.com/user-attachments/assets/2c5b85c4-721f-455e-b28e-83830eafad83" />
+<br><br>
 
 
 
