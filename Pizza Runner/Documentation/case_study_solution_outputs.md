@@ -431,9 +431,13 @@ Result - The most commonly excluded topping is Cheeze, which was added 4 times.
 
 ## 4. Generate an order item for each record in the customers_orders table in the format of one of the following:
 o Meat Lovers
+<br>
 o Meat Lovers - Exclude Beef
+<br>
 o Meat Lovers - Extra Bacon
+<br>
 o Meat Lovers - Exclude Cheese, Bacon - Extra Mushroom, Peppers
+<br>
 
 ```sql
 with adding_unique_identifier_to_customers_table as (
