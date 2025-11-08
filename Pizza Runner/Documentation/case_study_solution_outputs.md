@@ -509,8 +509,70 @@ Output -
 <br><br>
 
 
+## 5. Generate an alphabetically ordered comma separated ingredient list for each pizza order from the customer_orders table and add a 2x in front of any relevant ingredients. For example: "Meat Lovers: 2xBacon, Beef, ... , Salami"
 
 
+```sql
+with adding_unique_identifier_to_customers_table as (
+	select *, row_number() over(order by order_time) as unique_row_id from customer_orders
+), unnest_extras as (
+	select *, unnest(string_to_array(extras, ','))::Integer as unnested_extras_id
+	from adding_unique_identifier_to_customers_table
+), join_with_pizza_recipes as (
+	select ue.*, temp_tbl.unnested_toppings_id
+	from unnest_extras as ue
+	left join (
+		select *, unnest(string_to_array(toppings, ','))::Integer as unnested_toppings_id from pizza_recipes
+	) as temp_tbl
+	on ue.pizza_id = temp_tbl.pizza_id and
+	ue.unnested_extras_id = temp_tbl.unnested_toppings_id  
+),join_topping_names as (
+	select jp.*, 
+	case
+		when jp.unnested_extras_id is not null and jp.unnested_toppings_id is not null then concat('2x',pt.topping_name)
+		when jp.unnested_extras_id is not null and jp.unnested_toppings_id is null then pt.topping_name
+		else null
+	end as concatenated_ingredients_list
+	from join_with_pizza_recipes as jp
+	left join pizza_toppings as pt
+	on jp.unnested_extras_id = pt.topping_id
+), nest_back_unnested_extras as (
+	select unique_row_id,
+	order_id,
+	pn.pizza_name,
+	STRING_AGG(concatenated_ingredients_list,', ' ORDER BY concatenated_ingredients_list) as extras_list
+	from join_topping_names as jtn
+	left join pizza_names as pn
+	on jtn.pizza_id = pn.pizza_id
+	group by unique_row_id, order_id, pn.pizza_name
+	order by order_id, pn.pizza_name, extras_list
+)
+select 
+order_id,
+case
+	when extras_list is null then null
+	else concat(pizza_name, ': ', extras_list,', ')
+end as final_order_ingredients
+from nest_back_unnested_extras;
+```
+
+Description - 
+Logic:
+1. Each pizza’s extras are extracted and joined with the pizza’s default recipe to check for overlap.
+2. If a topping exists both in the base recipe and extras, it’s labeled as 2x<topping>.
+3. If a topping only exists in extras (new addition), it’s listed as <topping>.
+4. Only customized extras are displayed (not base toppings).
+5. Final toppings are alphabetically ordered and formatted per pizza.
+
+Example Output:
+1. Meatlovers: 2xBacon
+2. Vegetarian: Bacon
+3. Meatlovers: 2xBacon, 2xCheese
+
+
+NOTE - The null values in the below image output are because there were no extras for those particular orders.
+<img width="410" height="527" alt="image" src="https://github.com/user-attachments/assets/e732b115-50f3-4b23-9131-a2cea8180467" />
+<br><br>
 
 
 
