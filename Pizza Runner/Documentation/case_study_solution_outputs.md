@@ -574,6 +574,54 @@ NOTE - The null values in the below image output are because there were no extra
 <img width="410" height="527" alt="image" src="https://github.com/user-attachments/assets/e732b115-50f3-4b23-9131-a2cea8180467" />
 <br><br>
 
+## 6. What is the total quantity of each ingredient used in all delivered pizzas sorted by most frequent first?
+```sql
+WITH delivered_orders AS (
+    SELECT c.order_id, c.pizza_id, c.exclusions, c.extras
+    FROM customer_orders c
+    JOIN runner_orders r 
+        ON c.order_id = r.order_id
+    WHERE r.cancellation = 'Not Applicable'
+), base_toppings AS (
+    SELECT 
+        d.order_id,
+        d.pizza_id,
+        UNNEST(STRING_TO_ARRAY(pr.toppings, ','))::Integer AS topping_id
+    FROM delivered_orders d
+    JOIN pizza_recipes pr
+        ON d.pizza_id = pr.pizza_id
+), exclude_toppings AS (
+    SELECT 
+        d.order_id,
+        UNNEST(STRING_TO_ARRAY(d.exclusions, ','))::Integer AS topping_id
+    FROM delivered_orders d
+    WHERE d.exclusions IS NOT NULL AND d.exclusions <> '0'
+), extra_toppings AS (
+    SELECT 
+        d.order_id,
+        UNNEST(STRING_TO_ARRAY(d.extras, ','))::Integer AS topping_id
+    FROM delivered_orders d
+    WHERE d.extras IS NOT NULL AND d.extras <> '0'
+), final_ingredients AS (
+    SELECT bt.order_id, bt.topping_id
+    FROM base_toppings bt
+    LEFT JOIN exclude_toppings et
+        ON bt.order_id = et.order_id AND bt.topping_id = et.topping_id
+    WHERE et.topping_id IS NULL  
+
+    UNION ALL
+
+    SELECT order_id, topping_id FROM extra_toppings
+)
+SELECT  pt.topping_name, COUNT(*) AS total_times_used FROM final_ingredients fi
+INNER JOIN pizza_toppings pt
+ON fi.topping_id = pt.topping_id
+GROUP BY pt.topping_name
+ORDER BY total_times_used DESC;
+```
+
+<img width="311" height="433" alt="image" src="https://github.com/user-attachments/assets/136ab4ae-88ce-453a-a511-d9785e28afa3" />
+<br><br>
 
 
 
