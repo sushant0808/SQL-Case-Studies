@@ -624,10 +624,188 @@ ORDER BY total_times_used DESC;
 <br><br>
 
 
+### ------------------------------------------ D. Pricing and Ratings ------------------------------------------
 
+## 1. If a Meat Lovers pizza costs $12 and Vegetarian costs $10 and there were no charges for changes - how much money has Pizza Runner made so far if there are no delivery fees?
 
+```sql
+WITH pizza_cost AS (
+    SELECT 
+        co.order_id,
+        pn.pizza_name,
+        CASE 
+            WHEN pn.pizza_name = 'Meatlovers' THEN 12
+            WHEN pn.pizza_name = 'Vegetarian' THEN 10
+            ELSE 0
+        END AS pizza_price
+    FROM customer_orders co
+    JOIN runner_orders r
+        ON co.order_id = r.order_id
+    JOIN pizza_names pn
+        ON co.pizza_id = pn.pizza_id
+    WHERE r.cancellation = 'Not Applicable'  -- only delivered orders
+)
+SELECT 
+    '$' || SUM(pizza_price) AS total_revenue
+FROM pizza_cost;
+```
 
+<img width="135" height="82" alt="image" src="https://github.com/user-attachments/assets/1417faf0-022d-4067-aabc-a174c86c5ade" />
+<br><br>
 
+## 2. What if there was an additional $1 charge for any pizza extras?
+o Add cheese is $1 extra
+
+```sql
+WITH cheese_id AS (
+    SELECT topping_id 
+    FROM pizza_toppings 
+    WHERE topping_name = 'Cheese'
+),
+pizza_base AS (
+    SELECT 
+        co.order_id,
+        co.pizza_id,
+        pn.pizza_name,
+        REGEXP_REPLACE(co.extras, '\s+', '', 'g') AS extras_clean,
+        CASE
+            WHEN pn.pizza_name = 'Meatlovers' THEN 12
+            WHEN pn.pizza_name = 'Vegetarian' THEN 10
+            ELSE 0
+        END AS base_price
+    FROM customer_orders co
+    JOIN pizza_names pn
+        ON co.pizza_id = pn.pizza_id
+),
+add_cheese_flag AS (
+    SELECT 
+        p.*,
+        CASE 
+            WHEN (ARRAY(SELECT topping_id FROM cheese_id)) && 
+                 (STRING_TO_ARRAY(p.extras_clean, ',')::INT[])
+            THEN 1 ELSE 0
+        END AS has_cheese
+    FROM pizza_base p
+)
+SELECT 
+    order_id,
+    pizza_name,
+    base_price,
+    has_cheese,
+    base_price + has_cheese AS total_price
+FROM add_cheese_flag
+ORDER BY order_id;
+```
+
+<img width="578" height="528" alt="image" src="https://github.com/user-attachments/assets/bbbcd76a-456f-44d3-be16-06390836a7a6" />
+<br><br>
+
+## 3. The Pizza Runner team now wants to add an additional ratings system that allows customers to rate their runner, how would you design an additional table for this new dataset - generate a schema for this new table and insert your own data for ratings for each successful customer order between 1 to 5.
+
+```sql
+-- Creating runner_rating table
+DROP TABLE IF EXISTS runner_ratings;
+CREATE TABLE runner_ratings (
+    rating_id SERIAL PRIMARY KEY,  -- Auto-incremented unique ID for each rating
+    order_id INTEGER NOT NULL,    -- Links to customer_orders table
+    runner_id INTEGER NOT NULL,   -- Links to the runner responsible for delivery
+    rating INTEGER CHECK (rating BETWEEN 1 AND 5),  -- Customer's rating (1 to 5)
+    rating_date DATE  -- Date when the rating was given
+)
+
+-- Inserting data into the runner_rating table
+INSERT INTO runner_ratings
+  ("rating_id", "order_id", "runner_id", "rating", "rating_date")
+VALUES
+	('1001','1','1','4','01-01-2020'),
+	('1002','2','1','2','01-01-2020'),
+	('1003','3','1','3','03-01-2020'),
+	('1004','4','2','4','04-01-2020'),
+	('1005','5','3','5','08-01-2020'),
+	('1006','8','2','3','10-01-2020'),
+	('1007','10','1','5','11-01-2020')
+```
+
+## 4. Using your newly generated table - can you join all of the information together to form a table which has the following information for successful deliveries?
+
+o customer_id
+o order_id
+o runner_id
+o rating
+o order_time
+o pickup_time
+o Time between order and pickup
+o Delivery duration
+o Average speed
+o Total number of pizzas
+
+```sql
+SELECT 
+    co.customer_id,
+    co.order_id,
+    ro.runner_id,
+    rr.rating,
+    co.order_time,
+    ro.pickup_time,
+    ro.duration_numeric AS duration_mins,
+    ro.distance_numeric AS distance_km,
+    ROUND(EXTRACT(EPOCH FROM (ro.pickup_time::timestamp - co.order_time)) / 60)::INT AS time_to_pickup_mins,
+    ROUND(ro.distance_numeric / (ro.duration_numeric / 60.0))::INT AS avg_speed_kmph,
+    COUNT(DISTINCT co.pizza_id) AS total_pizzas
+FROM customer_orders co
+JOIN runner_orders ro
+    ON co.order_id = ro.order_id
+LEFT JOIN runner_ratings rr
+    ON co.order_id = rr.order_id
+WHERE ro.cancellation = 'Not Applicable'
+GROUP BY 
+    co.customer_id, co.order_id, ro.runner_id, rr.rating,
+    co.order_time, ro.pickup_time, ro.duration_numeric, ro.distance_numeric
+ORDER BY co.customer_id;
+```
+
+<img width="1600" height="297" alt="image" src="https://github.com/user-attachments/assets/ba367913-6c67-442c-b378-f53d367d1b02" />
+<br><br>
+
+## 5. If a Meat Lovers pizza was $12 and Vegetarian $10 fixed prices with no cost for extras and each runner is paid $0.30 per kilometre traveled - how much money does Pizza Runner have left over after these deliveries?
+
+```sql
+WITH pizza_cost AS (
+    SELECT 
+        co.order_id,
+        CASE
+            WHEN pn.pizza_name = 'Meatlovers' THEN 12
+            WHEN pn.pizza_name = 'Vegetarian' THEN 10
+            ELSE 0
+        END AS pizza_price
+    FROM customer_orders co
+    JOIN runner_orders r ON co.order_id = r.order_id
+    JOIN pizza_names pn ON co.pizza_id = pn.pizza_id
+    WHERE r.cancellation = 'Not Applicable'
+),
+runner_payment AS (
+    SELECT 
+        order_id, 
+        ROUND(distance_numeric::numeric * 0.30::numeric, 2) AS runner_pay
+    FROM runner_orders
+    WHERE cancellation = 'Not Applicable'
+),
+profit_calc AS (
+    SELECT 
+        pc.order_id,
+        SUM(pc.pizza_price) AS total_pizza_sales,
+        rp.runner_pay
+    FROM pizza_cost pc
+    JOIN runner_payment rp ON pc.order_id = rp.order_id
+    GROUP BY pc.order_id, rp.runner_pay
+)
+SELECT 
+    ROUND(SUM(total_pizza_sales - runner_pay), 2) AS total_profit
+FROM profit_calc;
+```
+
+<img width="121" height="81" alt="image" src="https://github.com/user-attachments/assets/9638db06-9978-4cb0-8cde-20eef002020d" />
+<br><br>
 
 
 
