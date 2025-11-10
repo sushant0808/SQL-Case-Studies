@@ -21,13 +21,17 @@ select count(distinct order_id) as unqiue_customer_orders from customer_orders;
 select runner_id, count(order_id) as successful_orders from runner_orders where cancellation = 'Not Applicable'
 group by runner_id order by successful_orders desc;
 
--- 4. How many of each type of pizza was delivered?
-select 
-c.pizza_id, p.pizza_name, count(c.pizza_id) as total_pizzas
-from customer_orders as c 
-inner join pizza_names as p
-on c.pizza_id = p.pizza_id
-group by c.pizza_id, p.pizza_name order by p.pizza_name;
+
+-- 4. How many of each type of pizza was delivered? actual result should be 10 and 2
+SELECT 
+    c.pizza_id, p.pizza_name, COUNT(c.pizza_id) AS delivered_pizzas
+FROM customer_orders AS c
+JOIN runner_orders AS r ON c.order_id = r.order_id
+JOIN pizza_names AS p ON c.pizza_id = p.pizza_id
+WHERE r.cancellation = 'Not Applicable'
+GROUP BY c.pizza_id, p.pizza_name
+ORDER BY p.pizza_name;
+
 
 -- 5. How many Vegetarian and Meatlovers were ordered by each customer?
 select 
@@ -39,56 +43,47 @@ group by c.customer_id, p.pizza_name order by c.customer_id;
 
 
 -- 6. What was the maximum number of pizzas delivered in a single order?
-
--- 1st approach
-select 
-order_id,
-count(order_id) as total_pizzas
-from
-customer_orders group by order_id order by total_pizzas desc limit 1;
-
--- 2nd approach
-WITH PizzaCounts AS (
-    SELECT 
-        order_id,
-        COUNT(order_id) AS total_pizzas
-    FROM 
-        customer_orders
-    GROUP BY 
-        order_id
-),
-MaxPizza AS (
-    SELECT 
-        MAX(total_pizzas) AS max_pizzas
-    FROM 
-        PizzaCounts
-)
 SELECT 
-    order_id,
-    total_pizzas
-FROM 
-    PizzaCounts
-WHERE 
-    total_pizzas = (SELECT max_pizzas FROM MaxPizza);
+c.order_id,
+count(c.order_id) as total_pizzas
+FROM customer_orders AS c
+JOIN runner_orders AS r ON c.order_id = r.order_id
+WHERE r.cancellation = 'Not Applicable'
+group by c.order_id order by total_pizzas desc limit 1;
 
 -- 7. For each customer, how many delivered pizzas had at least 1 change and how many had no changes?
 -- Check this solution thoroughly
-with tbl1 as(
-	select *,
-	case 
-		when exclusions != '0' or extras != '0' then 'Atleast 1 change'
-		when exclusions = '0' and extras = '0' then 'No change'
-		else 'null'
-	end as change_flag
-	from customer_orders
+WITH changes_flag AS (
+    SELECT
+        c.customer_id,
+        c.pizza_id,
+        CASE 
+            WHEN (c.exclusions <> '0' OR c.extras <> '0') THEN 'At least 1 Change'
+            WHEN (c.exclusions = '0' AND c.extras = '0') THEN 'No Change'
+            ELSE 'Unknown'
+        END AS change_flag
+    FROM customer_orders AS c
+    JOIN runner_orders AS r
+        ON c.order_id = r.order_id
+    WHERE r.cancellation = 'Not Applicable'  -- only delivered pizzas
 )
-select customer_id, change_flag, count(pizza_id) from tbl1
-group by customer_id, change_flag order by customer_id;
+SELECT
+    customer_id,
+    change_flag,
+    COUNT(pizza_id) AS total_pizzas
+FROM changes_flag
+GROUP BY customer_id, change_flag
+ORDER BY customer_id, change_flag;
+
 
 -- 8. How many pizzas were delivered that had both exclusions and extras?
-select 
-count(pizza_id) as total_pizzas
-from customer_orders where exclusions <> '0' and extras <> '0';
+SELECT COUNT(c.pizza_id) AS total_pizzas
+FROM customer_orders AS c
+JOIN runner_orders AS r ON c.order_id = r.order_id
+WHERE r.cancellation = 'Not Applicable'
+  AND c.exclusions <> '0' 
+  AND c.extras <> '0';
+
 
 -- 9. What was the total volume of pizzas ordered for each hour of the day?
 with t1 as (
@@ -97,12 +92,18 @@ with t1 as (
 select hours_from_timestamp as hours, count(pizza_id) as total_pizzas 
 from t1 group by hours_from_timestamp order by hours_from_timestamp;
 
+select * from customer_orders 
+
 -- 10. What was the volume of orders for each day of the week?
-with t1 as (
-	select *, date_part('week',order_time) as week_number from customer_orders
+WITH t1 AS (
+	SELECT *, TO_CHAR(order_time, 'Day') AS day_of_week
+	FROM customer_orders
 )
-select week_number as week, count(pizza_id) as total_pizzas 
-from t1 group by week order by week;
+SELECT TRIM(day_of_week) AS day, COUNT(pizza_id) AS total_pizzas
+FROM t1
+GROUP BY day_of_week
+ORDER BY MIN(order_time);
+
 
 
 ----------- B. Runner and Customer Experience -----------
@@ -112,7 +113,7 @@ from t1 group by week order by week;
 with t1 as (
 	SELECT 
 	    *,
-	    FLOOR((EXTRACT(DOY FROM registration_date) - 1) / 7) + 1 AS calendar_week
+	    DATE_TRUNC('week', registration_date::date - INTERVAL '4 days') + INTERVAL '4 days' AS calendar_week
 	FROM 
 	    runners	
 )
@@ -120,10 +121,29 @@ select calendar_week, count(runner_id) as total_runners from t1 group by calenda
 
 
 -- 2. What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?
-with t1 as (
-	select *, date_part('minutes', pickup_time::time) AS minute_part from runner_orders
+WITH order_prep_times AS (
+    SELECT 
+        r.runner_id,
+        c.order_id,
+        MIN(c.order_time) AS order_time,      
+        MIN(r.pickup_time) AS pickup_time,    
+        ROUND(
+            EXTRACT(EPOCH FROM (MIN(r.pickup_time)::timestamp - MIN(c.order_time)::timestamp)) / 60,
+            2
+        ) AS prep_time_mins                   
+    FROM customer_orders AS c
+    JOIN runner_orders AS r
+        ON c.order_id = r.order_id
+    WHERE r.pickup_time <> '00:00:00'         
+    GROUP BY r.runner_id, c.order_id 
 )
-select runner_id, sum(minute_part) / count(runner_id) as avg_time_taken from t1 group by runner_id;
+SELECT
+    runner_id,
+    ROUND(AVG(prep_time_mins), 2) AS avg_pickup_time_mins
+FROM order_prep_times
+GROUP BY runner_id
+ORDER BY runner_id;
+
 
 
 -- 3. Is there any relationship between the number of pizzas and how long the order takes to prepare?
@@ -134,13 +154,14 @@ from customer_orders as c
 inner join runner_orders as r
 on c.order_id = r.order_id order by c.order_id;
 
+
 -- According to the above query's data, I can see that orders having multiple pizzas ordered have taken more time to prepare. 
 -- So if a order has 2 or 3 or even more pizzas ordered then the time taken to prepare is relatively high.
 
 
 -- 4. What was the average distance travelled for each customer?
 select 
-c.customer_id, round(avg(r.distance_numeric))::TEXT || ' km'
+c.customer_id, round(avg(r.distance_numeric))::TEXT || ' km' as avg_distance
 from customer_orders as c
 inner join runner_orders as r
 on c.order_id = r.order_id
@@ -148,7 +169,6 @@ group by c.customer_id order by c.customer_id;
 
 
 -- 5. What was the difference between the longest and shortest delivery times for all orders?
-select *, pickup_time::time + (duration_numeric || ' minutes')::INTERVAL from runner_orders;
 
 with tab1 as(
 	SELECT 
@@ -156,7 +176,7 @@ with tab1 as(
 	    MIN(pickup_time::time + (duration_numeric || ' minutes')::INTERVAL) AS earliest_delivery_time
 	FROM runner_orders where pickup_time <> '00:00:00'
 )
-select *, latest_delivery_time - earliest_delivery_time from tab1;
+select *, latest_delivery_time - earliest_delivery_time as difference_time from tab1;
 
 
 -- 6. What was the average speed for each runner for each delivery and do you notice any trend for these values?
@@ -166,7 +186,7 @@ with tab1 as (
 	    order_id,
 	    distance_numeric AS distance_km,
 		duration_numeric as duration_in_minutes,
-	    duration_numeric / 60.0 AS time_hours,
+	    (duration_numeric::numeric / 60.0) AS time_hours,
 	    distance_numeric / (duration_numeric / 60.0) AS speed_in_kmph
 	FROM runner_orders
 	WHERE cancellation = 'Not Applicable' order by runner_id
@@ -175,7 +195,7 @@ SELECT
 runner_id,
 round(avg(distance_km))::text || ' km' as distance_km,
 round(avg(duration_in_minutes))::text || ' minutes' as duration_in_minutes,
-avg(time_hours)::text || ' hours' as duration_in_hours,
+round(avg(time_hours), 2)::text || ' hours' as duration_in_hours,
 round(AVG(speed_in_kmph))::text || ' km' AS avg_speed_kmph
 from tab1 group by runner_id;
 
@@ -199,15 +219,14 @@ ORDER BY runner_id;
 ----------- C.  Ingredient Optimisation -----------
 
 -- 1. What are the standard ingredients for each pizza?
-select * from customer_orders;
-
+select * from customer_orders order by order_id;
 select * from pizza_names;
 select * from pizza_recipes;
 select * from pizza_toppings;
 
 WITH expanded_toppings AS (
     SELECT 
-        pr.pizza_id, 
+        pr.pizza_id,
         UNNEST(STRING_TO_ARRAY(pr.toppings, ','))::INTEGER AS topping_id
     FROM pizza_recipes pr
 )
@@ -221,10 +240,12 @@ inner join pizza_names as pn on et.pizza_id = pn.pizza_id
 group by et.pizza_id, pn.pizza_name
 order by et.pizza_id;
 
+select * from customer_orders order by order_id;
+
 -- 2. What was the most commonly added extra?
 with orders as (
 	select *, UNNEST(STRING_TO_ARRAY(extras, ','))::INTEGER AS topping_id
-	from customer_orders
+	from customer_orders order by order_id
 )
 select 
 pt.topping_name, count(pt.topping_id) as total_toppings_used
@@ -254,137 +275,213 @@ group by pt.topping_name order by total_toppings_used desc limit 1;
 	-- Meat Lovers - Exclude Beef
 	-- Meat Lovers - Extra Bacon
 	-- Meat Lovers - Exclude Cheese, Bacon - Extra Mushroom, Peppers
-SELECT 
-    co.order_id,
-    pn.pizza_name || 
-    COALESCE(' - Exclude ' || exclusions_list, '') || 
-    COALESCE(' - Extra ' || extras_list, '') AS order_item
-FROM customer_orders co
-INNER JOIN pizza_names pn
-    ON co.pizza_id = pn.pizza_id
-LEFT JOIN LATERAL (
-    SELECT 
-        STRING_AGG(pt_ex.topping_name, ', ') AS exclusions_list
-    FROM UNNEST(STRING_TO_ARRAY(co.exclusions, ',')) AS excl_id
-    LEFT JOIN pizza_toppings pt_ex
-        ON excl_id::INTEGER = pt_ex.topping_id
-) ex ON TRUE
-LEFT JOIN LATERAL (
-    SELECT 
-        STRING_AGG(pt_extr.topping_name, ', ') AS extras_list
-    FROM UNNEST(STRING_TO_ARRAY(co.extras, ',')) AS extr_id
-    LEFT JOIN pizza_toppings pt_extr
-        ON extr_id::INTEGER = pt_extr.topping_id
-) ex2 ON TRUE
-ORDER BY co.order_id;
 
--- 5. Generate an alphabetically ordered comma separated ingredient list for each pizza order from the customer_orders table 
--- and add a 2x in front of any relevant ingredients For example: "Meat Lovers: 2xBacon, Beef, ... , Salami"
-
-with expanded_extras as (
-	select 
-	co.order_id,
-	pn.pizza_name,
-	UNNEST(string_to_array(co.extras,','))::INTEGER AS topping_id
-	from
-	customer_orders as co
-	inner join pizza_names as pn
-	on co.pizza_id = pn.pizza_id
-	where co.extras <> '0'
-),
-grouped_extras as (
-	select 
-	order_id, 
-	pizza_name,
-	topping_id,
-	count(topping_id) total_toppings
-	from
-	expanded_extras
-	group by order_id, pizza_name, topping_id
-),
-formatted_extras as (
-	select *
-	from grouped_extras as gx
-	inner join pizza_toppings as pt
-	on gx.topping_id = pt.topping_id
-),create_final_topping_name as (
-	select *,
-	case
-		when total_toppings > 1 then '2x'||topping_name
-	else topping_name
-	end as final_topping_name
-	from formatted_extras
-), final_output as (
+-- Main Logic
+with adding_unique_identifier_to_customers_table as (
+	select *, row_number() over(order by order_time) as unique_row_id from customer_orders
+), unnest_exclusions as (
+	select *, unnest(STRING_TO_ARRAY(exclusions,','))::INTEGER as unnested_exclusion_id
+	from adding_unique_identifier_to_customers_table
+), join_topping_names_with_unnested_exclusions as (
+	select ue.*, pn.pizza_name, pt.topping_name from unnest_exclusions as ue
+	left join pizza_toppings as pt
+	on ue.unnested_exclusion_id = pt.topping_id
+	left join pizza_names as pn
+	on ue.pizza_id = pn.pizza_id
+), nest_back_exclusions as (
 	select
+	unique_row_id,
 	order_id,
 	pizza_name,
-	pizza_name||': '||STRING_AGG(final_topping_name, ', ') AS combined_toppings
-	from create_final_topping_name
-	group by order_id, pizza_name
+	STRING_AGG(topping_name,', ') as exclusions_list 
+	from join_topping_names_with_unnested_exclusions
+	group by unique_row_id, order_id, pizza_name
+), unnest_extras as (
+	select *, unnest(STRING_TO_ARRAY(extras,','))::INTEGER as unnested_extras_id
+	from adding_unique_identifier_to_customers_table
+), join_topping_names_with_unnested_extras as (
+	select ue.*, pn.pizza_name, pt.topping_name from unnest_extras as ue
+	left join pizza_toppings as pt
+	on ue.unnested_extras_id = pt.topping_id
+	left join pizza_names as pn
+	on ue.pizza_id = pn.pizza_id
+), nest_back_extras as (
+	select
+	unique_row_id,
+	order_id,
+	pizza_name,
+	STRING_AGG(topping_name,', ') as extras_list 
+	from join_topping_names_with_unnested_extras
+	group by unique_row_id, order_id, pizza_name
 )
-select * from final_output order by order_id;
+select 
+n1.*, n2.extras_list,
+case 
+	when exclusions_list is null and extras_list is null then null
+	when exclusions_list is null and extras_list is not null then concat('Extra ',extras_list)
+	when extras_list is null and exclusions_list is not null then concat('Exclude ', exclusions_list)
+	else concat('Exclude ', exclusions_list,' - Extra ',extras_list)
+end as order_item_information
+from nest_back_exclusions as n1
+left join nest_back_extras as n2 
+on n1.unique_row_id = n2.unique_row_id
+order by order_id;
 
--- NOTE
--- Adding an element to check how the code works for orders having multiple same extras. For example if an order has 2 pizzas
--- and each of these 2 orders have a topping. So it should show 2X for that topping.
 
-INSERT INTO customer_orders
-  ("order_id", "customer_id", "pizza_id", "exclusions", "extras", "order_time")
-VALUES
-	('10', '104', '1', '3, 6', '1, 4', '2020-01-11 18:34:49');
+-- Alternative solution by chtagpt
+-- SELECT 
+--     co.order_id,
+--     pn.pizza_name || 
+--     COALESCE(' - Exclude ' || exclusions_list, '') || 
+--     COALESCE(' - Extra ' || extras_list, '') AS order_item
+-- FROM customer_orders co
+-- INNER JOIN pizza_names pn
+--     ON co.pizza_id = pn.pizza_id
+-- LEFT JOIN LATERAL (
+--     SELECT 
+--         STRING_AGG(pt_ex.topping_name, ', ') AS exclusions_list
+--     FROM UNNEST(STRING_TO_ARRAY(co.exclusions, ',')) AS excl_id
+--     LEFT JOIN pizza_toppings pt_ex
+--         ON excl_id::INTEGER = pt_ex.topping_id
+-- ) ex ON TRUE
+-- LEFT JOIN LATERAL (
+--     SELECT 
+--         STRING_AGG(pt_extr.topping_name, ', ') AS extras_list
+--     FROM UNNEST(STRING_TO_ARRAY(co.extras, ',')) AS extr_id
+--     LEFT JOIN pizza_toppings pt_extr
+--         ON extr_id::INTEGER = pt_extr.topping_id
+-- ) ex2 ON TRUE
+-- ORDER BY co.order_id;
 
+
+-- 5. Generate an alphabetically ordered comma separated ingredient list for each pizza order from the customer_orders table 
+-- and add a 2x in front of any relevant ingredients For example: "Meat Lovers: 2xBacon, Beef, ... , Salami".
+
+select * from customer_orders order by order_id;
+select * from pizza_names;
+select * from pizza_recipes;
+select * from pizza_toppings;
+
+
+-- New Logic
+with adding_unique_identifier_to_customers_table as (
+	select *, row_number() over(order by order_time) as unique_row_id from customer_orders
+), unnest_extras as (
+	select *, unnest(string_to_array(extras, ','))::Integer as unnested_extras_id
+	from adding_unique_identifier_to_customers_table
+), join_with_pizza_recipes as (
+	select ue.*, temp_tbl.unnested_toppings_id
+	from unnest_extras as ue
+	left join (
+		select *, unnest(string_to_array(toppings, ','))::Integer as unnested_toppings_id from pizza_recipes
+	) as temp_tbl
+	on ue.pizza_id = temp_tbl.pizza_id and
+	ue.unnested_extras_id = temp_tbl.unnested_toppings_id  
+),join_topping_names as (
+	select jp.*, 
+	case
+		when jp.unnested_extras_id is not null and jp.unnested_toppings_id is not null then concat('2x',pt.topping_name)
+		when jp.unnested_extras_id is not null and jp.unnested_toppings_id is null then pt.topping_name
+		else null
+	end as concatenated_ingredients_list
+	from join_with_pizza_recipes as jp
+	left join pizza_toppings as pt
+	on jp.unnested_extras_id = pt.topping_id
+), nest_back_unnested_extras as (
+	select unique_row_id,
+	order_id,
+	pn.pizza_name,
+	STRING_AGG(concatenated_ingredients_list,', ' ORDER BY concatenated_ingredients_list) as extras_list
+	from join_topping_names as jtn
+	left join pizza_names as pn
+	on jtn.pizza_id = pn.pizza_id
+	group by unique_row_id, order_id, pn.pizza_name
+	order by order_id, pn.pizza_name, extras_list
+)
+select 
+order_id,
+case
+	when extras_list is null then null
+	else concat(pizza_name, ': ', extras_list,', ')
+end as final_order_ingredients
+from nest_back_unnested_extras;
 
 
 -- 6. What is the total quantity of each ingredient used in all delivered pizzas sorted by most frequent first?
-select * from customer_orders;
+select * from customer_orders order by order_id;
+select * from runner_orders;
+select * from pizza_recipes;
 
 
-with expanded_extras as (
-	select 
-	co.order_id,
-	pn.pizza_name,
-	order_time,
-	UNNEST(string_to_array(co.extras,','))::INTEGER AS topping_id
-	from
-	customer_orders as co
-	inner join pizza_names as pn
-	on co.pizza_id = pn.pizza_id
-	where co.extras <> '0'
-),
-grouped_extras as (
-	select 
-	order_id, 
-	order_time,
-	pizza_name,
-	topping_id,
-	count(topping_id) total_toppings
-	from
-	expanded_extras
-	group by order_id,order_time, pizza_name, topping_id
+-- New Logic
+WITH delivered_orders AS (
+    SELECT c.order_id, c.pizza_id, c.exclusions, c.extras
+    FROM customer_orders c
+    JOIN runner_orders r 
+        ON c.order_id = r.order_id
+    WHERE r.cancellation = 'Not Applicable'
+), base_toppings AS (
+    SELECT 
+        d.order_id,
+        d.pizza_id,
+        UNNEST(STRING_TO_ARRAY(pr.toppings, ','))::Integer AS topping_id
+    FROM delivered_orders d
+    JOIN pizza_recipes pr
+        ON d.pizza_id = pr.pizza_id
+), exclude_toppings AS (
+    SELECT 
+        d.order_id,
+        UNNEST(STRING_TO_ARRAY(d.exclusions, ','))::Integer AS topping_id
+    FROM delivered_orders d
+    WHERE d.exclusions IS NOT NULL AND d.exclusions <> '0'
+), extra_toppings AS (
+    SELECT 
+        d.order_id,
+        UNNEST(STRING_TO_ARRAY(d.extras, ','))::Integer AS topping_id
+    FROM delivered_orders d
+    WHERE d.extras IS NOT NULL AND d.extras <> '0'
+), final_ingredients AS (
+    SELECT bt.order_id, bt.topping_id
+    FROM base_toppings bt
+    LEFT JOIN exclude_toppings et
+        ON bt.order_id = et.order_id AND bt.topping_id = et.topping_id
+    WHERE et.topping_id IS NULL  
+
+    UNION ALL
+
+    SELECT order_id, topping_id FROM extra_toppings
 )
-select * from grouped_extras order by order_time desc;
+SELECT  pt.topping_name, COUNT(*) AS total_times_used FROM final_ingredients fi
+INNER JOIN pizza_toppings pt
+ON fi.topping_id = pt.topping_id
+GROUP BY pt.topping_name
+ORDER BY total_times_used DESC;
 
  ----------- D. Pricing and Ratings -----------
  
 -- 1. If a Meat Lovers pizza costs $12 and Vegetarian costs $10 and there were no charges for changes - how much money 
 -- has Pizza Runner made so far if there are no delivery fees?
 
-with populating_pizza_cost as (
-	select *,
-	case	
-		when pm.pizza_name = 'Meatlovers' then 12
-		when pm.pizza_name = 'Vegetarian' then 10
-		else 0
-		end as pizza_cost
-	from customer_orders as co
-	inner join pizza_names as pm
-	on co.pizza_id = pm.pizza_id
-),
-final_output as (
-	select sum(pizza_cost) as total_sales
-	from populating_pizza_cost
+WITH pizza_cost AS (
+    SELECT 
+        co.order_id,
+        pn.pizza_name,
+        CASE 
+            WHEN pn.pizza_name = 'Meatlovers' THEN 12
+            WHEN pn.pizza_name = 'Vegetarian' THEN 10
+            ELSE 0
+        END AS pizza_price
+    FROM customer_orders co
+    JOIN runner_orders r
+        ON co.order_id = r.order_id
+    JOIN pizza_names pn
+        ON co.pizza_id = pn.pizza_id
+    WHERE r.cancellation = 'Not Applicable'  -- only delivered orders
 )
-select '$'||total_sales from final_output;
+SELECT 
+    '$' || SUM(pizza_price) AS total_revenue
+FROM pizza_cost;
+
 
 -- 2. What if there was an additional $1 charge for any pizza extras?
 -- Add cheese is $1 extra
@@ -397,42 +494,45 @@ INSERT INTO customer_orders
 ('11', '101', '2', '3, 5', '1, 4', '2020-01-12 19:50:49');
 
 -- Below is the main query
-WITH get_cheese_id AS (
+WITH cheese_id AS (
     SELECT topping_id 
     FROM pizza_toppings 
     WHERE topping_name = 'Cheese'
-), identifying_cheese_extra as (
-	SELECT 
-	    co.order_id,
-	    co.customer_id,
-	    co.pizza_id,
-	    co.extras,
-	    pn.pizza_name,
-	    STRING_TO_ARRAY(co.extras, ',') AS extras_array,
-	    CASE
-	        WHEN 
-	            ARRAY[(SELECT topping_id FROM get_cheese_id)] <@ (STRING_TO_ARRAY(co.extras, ',')::INTEGER[])
-	        THEN 'Cheese'
-	        ELSE 'No cheese'
-	    END AS is_cheese,
-	    CASE    
-	        WHEN pn.pizza_name = 'Meatlovers' THEN 12
-	        WHEN pn.pizza_name = 'Vegetarian' THEN 10
-	        ELSE 0
-	    END AS pizza_cost
-	FROM customer_orders AS co 
-	LEFT JOIN pizza_names AS pn
-	    ON co.pizza_id = pn.pizza_id
-	ORDER BY co.order_id, co.pizza_id
-), final_table as (
-	select *,
-	case
-		when is_cheese = 'Cheese' then pizza_cost + 1
-		else pizza_cost
-	end as total_pizza_cost
-	from identifying_cheese_extra
+),
+pizza_base AS (
+    SELECT 
+        co.order_id,
+        co.pizza_id,
+        pn.pizza_name,
+        REGEXP_REPLACE(co.extras, '\s+', '', 'g') AS extras_clean,
+        CASE
+            WHEN pn.pizza_name = 'Meatlovers' THEN 12
+            WHEN pn.pizza_name = 'Vegetarian' THEN 10
+            ELSE 0
+        END AS base_price
+    FROM customer_orders co
+    JOIN pizza_names pn
+        ON co.pizza_id = pn.pizza_id
+),
+add_cheese_flag AS (
+    SELECT 
+        p.*,
+        CASE 
+            WHEN (ARRAY(SELECT topping_id FROM cheese_id)) && 
+                 (STRING_TO_ARRAY(p.extras_clean, ',')::INT[])
+            THEN 1 ELSE 0
+        END AS has_cheese
+    FROM pizza_base p
 )
-select * from final_table;
+SELECT 
+    order_id,
+    pizza_name,
+    base_price,
+    has_cheese,
+    base_price + has_cheese AS total_price
+FROM add_cheese_flag
+ORDER BY order_id;
+
 
 
 -- 3. The Pizza Runner team now wants to add an additional ratings system that allows customers to rate their runner, how would 
@@ -483,56 +583,63 @@ VALUES
 -- Average speed
 -- Total number of pizzas
 
-select 
-co.customer_id, co.order_id, ro.runner_id, rr.rating,
-co.order_time, ro.pickup_time, ro.duration_numeric as duration, ro.distance_numeric as distance,
-(round(EXTRACT(EPOCH FROM ((ro.pickup_time::timestamp) - co.order_time)) / 60,0))::text || ' mins' AS time_difference,
-(round((ro.distance_numeric / (ro.duration_numeric / 60.0))))::text || ' kmph' AS avg_speed, 
-count(co.order_id) as total_pizzas
-from customer_orders as co
-left join runner_orders as ro
-on co.order_id = ro.order_id
-left join runner_ratings as rr
-on co.order_id = rr.order_id
-where ro.cancellation = 'Not Applicable'
-group by co.customer_id, co.order_id, ro.runner_id, rr.rating,
-co.order_time, ro.pickup_time, ro.duration_numeric, ro.distance_numeric
-order by co.customer_id;
-
-select * from runner_orders;
-select * from customer_orders;
-
-update runner_orders set pickup_time = '2020-01-12 19:55:00' where order_id = '11';
-
-update customer_orders set order_time = '2020-01-12 19:50:00' where order_id = '11';
+SELECT 
+    co.customer_id,
+    co.order_id,
+    ro.runner_id,
+    rr.rating,
+    co.order_time,
+    ro.pickup_time,
+    ro.duration_numeric AS duration_mins,
+    ro.distance_numeric AS distance_km,
+    ROUND(EXTRACT(EPOCH FROM (ro.pickup_time::timestamp - co.order_time)) / 60)::INT AS time_to_pickup_mins,
+    ROUND(ro.distance_numeric / (ro.duration_numeric / 60.0))::INT AS avg_speed_kmph,
+    COUNT(DISTINCT co.pizza_id) AS total_pizzas
+FROM customer_orders co
+JOIN runner_orders ro
+    ON co.order_id = ro.order_id
+LEFT JOIN runner_ratings rr
+    ON co.order_id = rr.order_id
+WHERE ro.cancellation = 'Not Applicable'
+GROUP BY 
+    co.customer_id, co.order_id, ro.runner_id, rr.rating,
+    co.order_time, ro.pickup_time, ro.duration_numeric, ro.distance_numeric
+ORDER BY co.customer_id;
 
 -- 5. If a Meat Lovers pizza was $12 and Vegetarian $10 fixed prices with no cost for extras and each runner is paid $0.30 per
 -- kilometre traveled - how much money does Pizza Runner have left over after these deliveries?
 
-with pizza_cost as (
-	select 
-	co.order_id, co.pizza_id, pn.pizza_name,
-	case
-		when pn.pizza_name = 'Meatlovers' then 12
-		when pn.pizza_name = 'Vegetarian' then 10
-		else 0
-	end as pizza_cost
-	from
-	customer_orders as co
-	left join pizza_names as pn
-	on co.pizza_id = pn.pizza_id
-), runner_table as (
-	select order_id, distance_numeric * 0.30 as company_delivery_spends
-	from runner_orders 
-), transformed_table as(
-	select *,
-	round(pizza_cost::integer * company_delivery_spends::integer,0) as total_amount,
-	round(pizza_cost::integer - company_delivery_spends::integer,0) as profit_amount
-	from pizza_cost as pc
-	left join runner_table as rt
-	on pc.order_id = rt.order_id
-	order by pc.order_id
+WITH pizza_cost AS (
+    SELECT 
+        co.order_id,
+        CASE
+            WHEN pn.pizza_name = 'Meatlovers' THEN 12
+            WHEN pn.pizza_name = 'Vegetarian' THEN 10
+            ELSE 0
+        END AS pizza_price
+    FROM customer_orders co
+    JOIN runner_orders r ON co.order_id = r.order_id
+    JOIN pizza_names pn ON co.pizza_id = pn.pizza_id
+    WHERE r.cancellation = 'Not Applicable'
+),
+runner_payment AS (
+    SELECT 
+        order_id, 
+        ROUND(distance_numeric::numeric * 0.30::numeric, 2) AS runner_pay
+    FROM runner_orders
+    WHERE cancellation = 'Not Applicable'
+),
+profit_calc AS (
+    SELECT 
+        pc.order_id,
+        SUM(pc.pizza_price) AS total_pizza_sales,
+        rp.runner_pay
+    FROM pizza_cost pc
+    JOIN runner_payment rp ON pc.order_id = rp.order_id
+    GROUP BY pc.order_id, rp.runner_pay
 )
-select sum(profit_amount) from transformed_table;
+SELECT 
+    ROUND(SUM(total_pizza_sales - runner_pay), 2) AS total_profit
+FROM profit_calc;
 
 
